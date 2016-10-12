@@ -29,16 +29,18 @@ class GumScraper():
                   'maxPrice': max_price,
                   'pageSize':100,
                   'pageNum':1}
-        
+
+        # Encode parameters in url and scrape page 
         params = {k:v for k,v in params.items() if v is not None}
         full_url = url + urllib.parse.urlencode(params)
         
         request = requests.get(full_url)
         text = request.text
 
-        last_page = self._find_last_page(text)
         ads = self._parse_ads(text)
 
+        # Find nr pages and scrape next pages
+        last_page = self._find_last_page(text)
         min_page = min(max_pages,last_page)
 
         for page_num in range(2,min_page+1):
@@ -51,7 +53,8 @@ class GumScraper():
 
     def _find_last_page(self,page_text):
        tree = html.fromstring(page_text) 
-       last_page_ref = tree.xpath('//a[@class="paginator__button paginator__button-last"]')
+       last_page_ref = tree.xpath(
+               '//a[@class="paginator__button paginator__button-last"]')
 
        if not last_page_ref:
            return 1
@@ -61,21 +64,25 @@ class GumScraper():
        return int(re.findall('page-(\d+)',relative_url)[0])
 
     def _parse_ads(self,page_text):
-        # get title, cost, date
-        #page = requests.get(url)
         tree = html.fromstring(page_text)
 
         ad_subtrees = tree.xpath('//div[@class="ad-listing__details"]')
         
-        def _get_first_text(tree,search_string):
+        def get_text(tree,search_string):
             return tree.xpath(search_string)[0].text_content().strip()
         
         ads = []
         for ad in ad_subtrees:
-            title = _get_first_text(ad,'div/h6[@class="ad-listing__title"]/a/span[@itemprop="name"]')
-            price = _get_first_text(ad,'div/div[@class="ad-listing__price"]/div/span[@class="j-original-price"]')
-            date = _get_first_text(ad,'div/div[@class="ad-listing__date"]')
-            url_relative = ad.xpath('div/h6[@class="ad-listing__title"]/a[@class="ad-listing__title-link"]')[0].attrib['href']
+            title = get_text(ad,
+                    'div/h6[@class="ad-listing__title"]/a/span[@itemprop="name"]')
+
+            price = get_text(ad,
+                    'div/div[@class="ad-listing__price"]/div/span[@class="j-original-price"]')
+
+            date = get_text(ad,'div/div[@class="ad-listing__date"]')
+
+            url_relative = ad.xpath(
+                    'div/h6[@class="ad-listing__title"]/a[@class="ad-listing__title-link"]')[0].attrib['href']
             url = urllib.parse.urljoin('http://www.gumtree.com.au',url_relative)
             
             ads.append(Ad(url,title,price))

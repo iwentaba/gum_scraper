@@ -3,9 +3,8 @@ from scraper import GumScraper
 
 class TestGumScraper(unittest.TestCase):
     def test_parse_page(self):
-        url = 'http://www.gumtree.com.au/s-surfing/perth/kite/page-5/k0c18568l3008303'
         scrap = GumScraper()
-        ads = scrap.do_search("kite",minPrice=400)
+        ads = scrap.do_search("kite",max_pages=1,min_price=400)
         
         self.assertTrue(len(ads) > 0)
         self.assertTrue(type(ads[0].title) == type(''))
